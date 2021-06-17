@@ -78,12 +78,14 @@ class MSG():
         print("-----getMSG start-------")
         for i in self.dicts:
             if str(node1.nodeID) == str(i[1]):
+                # 밑에 수정 필요
                 print(str(node1)+" MSG : "+str(i[2]) + " FROM : "+ str(i[0]))
         print("-----getMSG end-------")
     def sendMSGprint(self, node1):
         print("-----sendMSG start-------")
         for i in self.dicts:
             if str(node1.nodeID) == str(i[0]):
+                # 밑에 수정 필요
                 print(str(node1) + " MSG : " + str(i[2]) + " To : " + str(i[1]))
         print("-----getMSG end-------")
 
