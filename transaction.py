@@ -27,8 +27,7 @@ class Transaction:
         print("Energy:"+str(Energy))
         print("Money:"+str(Money))
         print("GasPrice:"+str(GasPrice))
-        # 너무 길어서 16 bytes 까지만 표시
-        print("sig1:"+crypto.b16encode(sig1).decode()[0:16])
+        print("sig1:"+crypto.b16encode(sig1).decode()[0:16]) # 너무 길어서 16 bytes 까지만 표시
         print("sig2:"+str(sig2))
     #add to Pool
     def sendTx(self):

@@ -29,6 +29,7 @@ class Network:
 class Node:
     # KEY 생성 및 노드 생성.
     def __init__(self,nodeID,network):
+        #print("현재 네트워크 피어 개수 : ",network.getSize())
         self.peerlistm = network.getPeerlist()
         self.nodeID = nodeID
         self.isMinor = False
@@ -74,29 +75,37 @@ class MSG():
         temp = [node1,node2,'ConnectMsg']
         self.dicts.append(temp)
     def getMSGprint(self,node1):
+        print("-----getMSG start-------")
         for i in self.dicts:
             if str(node1.nodeID) == str(i[1]):
                 print(str(node1)+" MSG : "+str(i[2]) + " FROM : "+ str(i[0]))
+        print("-----getMSG end-------")
     def sendMSGprint(self, node1):
+        print("-----sendMSG start-------")
         for i in self.dicts:
             if str(node1.nodeID) == str(i[0]):
                 print(str(node1) + " MSG : " + str(i[2]) + " To : " + str(i[1]))
+        print("-----getMSG end-------")
 
 msgServer=MSG()
 
 if __name__ == '__main__':                 
-    TxPool = TransactionPool()
-    bootstrap = Network()
-    print("nodeA 생성")
-    nodeA = Node(bootstrap.Td,bootstrap)
-    bootstrap.addNode(nodeA)
-    print("nodeB 생성")
-    nodeB = Node(bootstrap.Td,bootstrap)
-    bootstrap.addNode(nodeA)
+    TxPool = TransactionPool() #TxPool 생성
+    bootstrap = Network() #초기 사용자 노드에게 현재 네트워크 참여 노드 리스트를 전송해주는 bootstrap node
+
+    nodeA = Node(bootstrap.Td,bootstrap) # 노드A 생성
+    nodeA.sendConnectMsg()  # 노드A가 bootstrap에 노드리스트 메세지 전송
+    bootstrap.addNode(nodeA)  # 부트노드에 노드A 추가 및 노드A에게 전체 노드리스트 반환
+    print("\n현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()))
+
+    nodeB = Node(bootstrap.Td, bootstrap)  # 노드B 생성
+    nodeB.sendConnectMsg() # 노드B가 bootstrap에 노드리스트 메세지 전송
+    bootstrap.addNode(nodeB) # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
     print("\n현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()))
 
     print("nodeA -> nodeB로 Tx 전송")
-    nodeA.sendConnectMsg()
-    TxPool.addTx(nodeA.sendTx(nodeB.getPubKey(),50,4.1,0.04,0,0))
-    msgServer.getMSGprint(nodeB)
-    msgServer.sendMSGprint(nodeB)
+    TxPool.addTx(nodeA.sendTx(nodeB.getPubKey(), 50, 4.1, 0.04, 0, 0))
+
+    msgServer.getMSGprint(nodeB) # nodeB가 받은 message 출력
+    msgServer.sendMSGprint(nodeB) # nodeB가 전송한 message 출력
+
