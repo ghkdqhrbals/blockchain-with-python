@@ -7,6 +7,8 @@ class TransactionPool:
     def __init__(self):
         self.Txlist=[]
         return
+    def getTxs(self):
+        return self.Txlist
     def addTx(self,Tx):
         self.Txlist.append(Tx)
     def removeTx(self,Tx):
@@ -23,7 +25,7 @@ class TransactionPool:
     def getMyTransaction(self,node): # 나한테 다른 사람이 보낸 Transaction 확인
         lists = []
         for tx in self.Txlist:
-            if node.ID == tx.To:
+            if node == tx.To:
                 print(tx)
                 lists.append(tx)
         #print(lists)
