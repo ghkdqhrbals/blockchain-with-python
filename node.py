@@ -72,6 +72,20 @@ class Node:
         return self.ID
     def getPubKey(self):
         return self.pub_key
+    def sign1(self,To,Energy,Money,GasPrice):
+        with open("private"+str(self.number)+".pem", 'rb+') as f:
+            self.priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
+        with open("public"+str(self.number)+".pem", 'rb+') as f:
+            self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
+
+        rlp = str(self.pub_key) + str(To) + str(Energy) + str(Money) + str(GasPrice)
+        hash = SHA.new(rlp.encode('utf-8')).digest()
+        sig = sign(self.priv_key, hash, 'sha256')
+
+        x509 = X509()
+        x509.set_pubkey(self.pub_key)
+        Tx = Transaction(self.ID, To, Energy, Money, GasPrice, sig, 0, x509)
+
     def sendTx(self,To,Energy,Money,GasPrice,sig1,sig2):
         with open("private"+str(self.number)+".pem", 'rb+') as f:
             self.priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
@@ -85,7 +99,7 @@ class Node:
 
         x509 = X509()
         x509.set_pubkey(self.pub_key)
-        Tx = Transaction(self.pub_key,To,Energy,Money,GasPrice,sig,sig2,x509)
+        Tx = Transaction(self.ID,To,Energy,Money,GasPrice,sig,sig2,x509)
         print("send transaction")
         print(Tx)
         return Tx
@@ -135,7 +149,7 @@ if __name__ == '__main__':
     print(bootstrap.getPeerInfo(nodeA)) # 네트워크에서 nodeA정보 반환.
 
     print("nodeA -> nodeB로 Tx 전송")
-    TxPool.addTx(nodeA.sendTx(nodeB.getPubKey(), 50, 4.1, 0.04, 0, 0)) # TxPool에 Tx추가.
+    TxPool.addTx(nodeA.sendTx(nodeB.getID(), 50, 4.1, 0.04, 0, 0)) # TxPool에 Tx추가.
 
     msgServer.getMSGprint(nodeB) # nodeB가 받은 message 출력
     msgServer.sendMSGprint(nodeB) # nodeB가 전송한 message 출력
