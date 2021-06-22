@@ -2,8 +2,7 @@ import hashlib
 
 import OpenSSL.crypto
 from Crypto.PublicKey import RSA
-from transaction import Transaction
-from transaction import TransactionPool
+from transaction import Transaction, TransactionPool
 from OpenSSL.crypto import load_privatekey, FILETYPE_PEM, sign, load_publickey, verify, X509
 from Crypto.Hash import SHA256 as SHA
 from OpenSSL import crypto
@@ -14,26 +13,34 @@ class Network:
         self.Td = 0
         self.peerlist = {}
         return
+
     def getTd(self):
         return self.Td
+
     def getSize(self):
         return len(self.peerlist)
-    def addNode(self,node):
+
+    def addNode(self, node):
         self.Td += 1
-        self.peerlist[node.ID] = [node.state,node.Energy,node.Money,node.pub_key]
-    def removeNode(self,node):
+        self.peerlist[node.ID] = [node.state, node.Energy, node.Money, node.pub_key]
+
+    def removeNode(self, node):
         del self.peerlist[node]
+
     # dict 반환
     def getPeerlist(self):
         return self.peerlist
+
     # value 반환
-    def getPeerInfo(self,node):
+    def getPeerInfo(self, node):
         return self.peerlist[node.ID]
+
+
 class Node:
     # KEY 생성 및 노드 생성.
-    def __init__(self,number,network,Energy,Money,state):
-        #print("현재 네트워크 피어 개수 : ",network.getSize())
-        self.state = state # user : 0, minor : 1
+    def __init__(self, number, network, Energy, Money, state):
+        # print("현재 네트워크 피어 개수 : ",network.getSize())
+        self.state = state  # user : 0, minor : 1
         self.Energy = Energy
         self.Money = Money
         self.peerlistm = network.getPeerlist()
@@ -43,39 +50,42 @@ class Node:
         self.pub_key_str = ""
         self.ID = ""
         pkey = crypto.PKey()
-        pkey.generate_key(crypto.TYPE_RSA, 1024+number)
+        pkey.generate_key(crypto.TYPE_RSA, 1024 + number)
         print("RSA KEY 생성완료")
-        with open("public"+str(number)+".pem", 'ab+') as f:
+        with open("public" + str(number) + ".pem", 'ab+') as f:
             f.write(crypto.dump_publickey(crypto.FILETYPE_PEM, pkey))
-        with open("private"+str(number)+".pem", 'ab+') as f:
+        with open("private" + str(number) + ".pem", 'ab+') as f:
             f.write(crypto.dump_privatekey(crypto.FILETYPE_PEM, pkey))
-        with open("public"+str(self.number)+".pem", 'rb+') as f:
+        with open("public" + str(self.number) + ".pem", 'rb+') as f:
             for i in f.readlines():
                 j = str(i)
                 if '---' in j:
                     continue
-                j.replace('\n','')
-                j=j[2:len(j)-3]
-                self.pub_key_str+=j
-            #self.pub_key_str = self.pub_key_str.replace('+','').replace('/','')
-            #print(self.pub_key_str)
+                j.replace('\n', '')
+                j = j[2:len(j) - 3]
+                self.pub_key_str += j
+            # self.pub_key_str = self.pub_key_str.replace('+','').replace('/','')
+            # print(self.pub_key_str)
             self.ID = hashlib.sha256(self.pub_key_str.encode('utf-8')).hexdigest()[:16]
-            print("ID : "+self.ID)
+            print("ID : " + self.ID)
 
         with open("public" + str(self.number) + ".pem", 'rb+') as f:
             self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
 
-            #print(crypto.b16encode(bytes(str(self.pub_key),encoding='utf-8')).decode())
-            #print(bytes(str(self.pub_key),encoding='utf-8'))
-            #self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
+            # print(crypto.b16encode(bytes(str(self.pub_key),encoding='utf-8')).decode())
+            # print(bytes(str(self.pub_key),encoding='utf-8'))
+            # self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
+
     def getID(self):
         return self.ID
+
     def getPubKey(self):
         return self.pub_key
+
     def sign1(self,To,Energy,Money,GasPrice):
         with open("private"+str(self.number)+".pem", 'rb+') as f:
             self.priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
-        with open("public"+str(self.number)+".pem", 'rb+') as f:
+        with open("public" + str(self.number) + ".pem", 'rb+') as f:
             self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
 
         rlp = str(self.pub_key) + str(To) + str(Energy) + str(Money) + str(GasPrice)
@@ -87,6 +97,7 @@ class Node:
         Tx = Transaction(self.ID, To, Energy, Money, GasPrice, sig1, b'0', x509,b'0')
         print("sign 1")
         return Tx
+      
     def sign2(self,To,Energy,Money,GasPrice,sig1,x509_1):
         with open("private"+str(self.number)+".pem", 'rb+') as f:
             self.priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
@@ -103,16 +114,19 @@ class Node:
         print("sign 2")
         print(Tx)
         return Tx
+
     def sendConnectMsg(self):
         for i in self.peerlistm:
-            msgServer.sendConnectMsg(self.ID,i)
+            msgServer.sendConnectMsg(self.ID, i)
         return
+
 class MSG():
     def __init__(self):
         self.dicts = []
         return
+
     def sendConnectMsg(self, node1, node2):
-        temp = [node1,node2,'ConnectMsg']
+        temp = [node1, node2, 'ConnectMsg']
         self.dicts.append(temp)
 
     # 내가 받은 메세지
@@ -123,6 +137,7 @@ class MSG():
                 # 밑에 수정 필요
                 print("[ME:"+str(node1.ID)+"] [MSG:"+str(i[2]) + "] [FROM:"+ str(i[0])+"]")
         print("-----getMSG end-------")
+
     def sendMSGprint(self, node1):
         print("-----sendMSG start-------")
         for i in self.dicts:
@@ -132,13 +147,13 @@ class MSG():
         print("-----getMSG end-------")
 
 
-msgServer=MSG()
+msgServer = MSG()
 
-if __name__ == '__main__':                 
-    TxPool = TransactionPool() #TxPool 생성
-    bootstrap = Network() #초기 사용자 노드에게 현재 네트워크 참여 노드 리스트를 전송해주는 bootstrap node
+if __name__ == '__main__':
+    TxPool = TransactionPool()  # TxPool 생성
+    bootstrap = Network()  # 초기 사용자 노드에게 현재 네트워크 참여 노드 리스트를 전송해주는 bootstrap node
 
-    nodeA = Node(bootstrap.Td,bootstrap,100,150,1) # 노드A 생성
+    nodeA = Node(bootstrap.Td, bootstrap, 100, 150, 1)  # 노드A 생성
     nodeA.sendConnectMsg()  # 노드A가 bootstrap에 노드리스트 메세지 전송
     bootstrap.addNode(nodeA)  # 부트노드에 노드A 추가 및 노드A에게 전체 노드리스트 반환
     print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize())+"\n")
@@ -159,7 +174,7 @@ if __name__ == '__main__':
     #msgServer.getMSGprint(nodeA)  # nodeB가 받은 message 출력
     #msgServer.sendMSGprint(nodeA)  # nodeB가 전송한 message 출력
 
-    print(bootstrap.getPeerInfo(nodeA)) # 네트워크에서 nodeA정보 반환.
+    print(bootstrap.getPeerInfo(nodeA))  # 네트워크에서 nodeA정보 반환.
 
     print("\'nodeA가 nodeB에게 50 에너지를 4.1원에 살것이다\' Transaction 전송")
     TxPool.addTx(nodeA.sign1(nodeB.getID(), 50, 4.1, 0.04)) # TxPool에 Tx추가.
