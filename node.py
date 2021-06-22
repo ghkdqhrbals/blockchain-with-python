@@ -31,23 +31,45 @@ class Network:
     def getPeerlist(self):
         return self.peerlist
 
+    def getNode(self, nodeID):
+        return self.peerlist[nodeID]
+
     # value 반환
     def getPeerInfo(self, node):
         return self.peerlist[node.ID]
 
     # state 1: energy +
     # state 2: money +
-    def supply(self,node,state,N):
-        templist=[]
+    def supply(self, node, state, N):
+        templist = []
         if state == 1:
-            tempEnergy = self.peerlist[node.ID][1]+N
-            templist = [node.state,tempEnergy,node.Money,node.pub_key]
+            tempEnergy = self.peerlist[node.ID][1] + N
+            templist = [node.state, tempEnergy, node.Money, node.pub_key]
         if state == 2:
             tempMoney = self.peerlist[node.ID][1] + N
             templist = [node.state, node.Energy, tempMoney, node.pub_key]
         self.peerlist[node.ID] = templist
 
+    def change_currency(self, node, energy, money, address):
+        templist = [node[0], energy, money, node[3]]
+        print(templist)
+        self.peerlist[address] = templist
+        return self
 
+    def change_currency_for_gas_price(self, node, money, address):
+        templist = [node[0], node[1], node[2] + money, node[3]]
+        print(templist)
+
+        self.peerlist[address] = templist
+        return self
+
+
+class NodeList:
+    def __init__(self):
+        self.nodes = []
+
+    def addNode(self, node):
+        self.nodes.append(node)
 
 
 class Node:
@@ -84,9 +106,17 @@ class Node:
         with open("public" + str(self.number) + ".pem", 'rb+') as f:
             self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
 
+    def __str__(self):
+        return "Node : " + str(self.ID) + ", Money : " + str(self.Money) + ", Energy : " + str(self.Energy)
+
+    def change_currency_node(self, node):
+        self.Energy = node[1]
+        self.Money = node[2]
+        return self
+
     # state 1: energy +
     # state 2: money +
-    def supply(self,state,N):
+    def supply(self, state, N):
         if state == 1:
             self.Energy += N
         if state == 2:
@@ -98,8 +128,8 @@ class Node:
     def getPubKey(self):
         return self.pub_key
 
-    def sign1(self,To,Energy,Money,GasPrice):
-        with open("private"+str(self.number)+".pem", 'rb+') as f:
+    def sign1(self, To, Energy, Money, GasPrice):
+        with open("private" + str(self.number) + ".pem", 'rb+') as f:
             self.priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
         with open("public" + str(self.number) + ".pem", 'rb+') as f:
             self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
@@ -110,23 +140,23 @@ class Node:
 
         x509 = X509()
         x509.set_pubkey(self.pub_key)
-        Tx = Transaction(self.ID, To, Energy, Money, GasPrice, sig1, b'0', x509,b'0')
+        Tx = Transaction(self.ID, To, Energy, Money, GasPrice, sig1, b'0', x509, b'0')
         print("sign 1")
         return Tx
-      
-    def sign2(self,From,To,Energy,Money,GasPrice,sig1,x509_1):
-        with open("private"+str(self.number)+".pem", 'rb+') as f:
+
+    def sign2(self, From, To, Energy, Money, GasPrice, sig1, x509_1):
+        with open("private" + str(self.number) + ".pem", 'rb+') as f:
             self.priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
-        with open("public"+str(self.number)+".pem", 'rb+') as f:
+        with open("public" + str(self.number) + ".pem", 'rb+') as f:
             self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
 
-        rlp = str(From)+str(To)+str(Energy)+str(Money)+str(GasPrice)+str(sig1)
+        rlp = str(From) + str(To) + str(Energy) + str(Money) + str(GasPrice) + str(sig1)
         hash = SHA.new(rlp.encode('utf-8')).digest()
-        sig2 = sign(self.priv_key,hash,'sha256')
+        sig2 = sign(self.priv_key, hash, 'sha256')
 
         x509 = X509()
         x509.set_pubkey(self.pub_key)
-        Tx = Transaction(From,To,Energy,Money,GasPrice,sig1,sig2,x509_1,x509)
+        Tx = Transaction(From, To, Energy, Money, GasPrice, sig1, sig2, x509_1, x509)
         print("sign 2")
         print(Tx)
         return Tx
@@ -135,6 +165,7 @@ class Node:
         for i in self.peerlistm:
             msgServer.sendConnectMsg(self.ID, i)
         return
+
 
 class MSG():
     def __init__(self):
@@ -146,12 +177,12 @@ class MSG():
         self.dicts.append(temp)
 
     # 내가 받은 메세지
-    def getMSGprint(self,node1):
+    def getMSGprint(self, node1):
         print("-----getMSG start-------")
         for i in self.dicts:
             if str(node1.ID) == str(i[1]):
                 # 밑에 수정 필요
-                print("[ME:"+str(node1.ID)+"] [MSG:"+str(i[2]) + "] [FROM:"+ str(i[0])+"]")
+                print("[ME:" + str(node1.ID) + "] [MSG:" + str(i[2]) + "] [FROM:" + str(i[0]) + "]")
         print("-----getMSG end-------")
 
     def sendMSGprint(self, node1):
@@ -159,7 +190,7 @@ class MSG():
         for i in self.dicts:
             if str(node1.ID) == str(i[0]):
                 # 밑에 수정 필요
-                print("[ME:"+str(node1.ID)+"] [MSG:"+str(i[2]) + "] [TO:"+ str(i[1])+"]")
+                print("[ME:" + str(node1.ID) + "] [MSG:" + str(i[2]) + "] [TO:" + str(i[1]) + "]")
         print("-----getMSG end-------")
 
 

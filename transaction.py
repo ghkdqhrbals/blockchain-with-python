@@ -45,14 +45,18 @@ class Transaction:
         self.x509_2 = x509_2
     def __str__(self):
         return "------ TxID: "+self.TxID+" ------\nFrom: "+str(self.From)+"\nTo: "+str(self.To)+"\nEnergy: "+str(self.Energy)+"\nMoney: "+str(self.Money)+"\nGasPrice: "+str(self.GasPrice)+"\nsig1: "+str(crypto.b16encode(self.sig1).decode()[0:32])+"\nsig2: "+str(crypto.b16encode(self.sig2).decode()[0:32])+"\n-------------------------------------------------------------"
-    def getFrom(self):
-        return self.From
+    def getFromAndTo(self):
+        return self.From, self.To
+    def getEnergyAndMoney(self):
+        return self.Energy, self.Money
     def getTxID(self):
         return self.TxID
     def getInfo(self):
         lists=[self.From,self.To,self.Energy,self.Money,self.GasPrice,self.sig1,self.sig2,self.x509,self.x509_2]
         return lists
     #add to Pool
+    def getGas(self):
+        return self.GasPrice
     def sendTx(self):
         return
     def printTx(self,TxID):

@@ -18,13 +18,13 @@ class Block:
         self.hash = ""  # 현재 블록 해쉬
 
     def setBlockHashAndMiner(self, currentMiner, transactions):
-        self.transactions = transactions.getMyTransaction(currentMiner)  # 트랜잭션을 블록에 담음
+        self.transactions = transactions.getTxs()  # 트랜잭션을 블록에 담음
         print("이 블록에 담기는 Transactions는? -----------")
         print(currentMiner)
-        print(self.transactions)
+        if len(self.transactions) > 0:
+            print(self.transactions[0])
         print("-----------------------------------------")
         self.minerNodeId = currentMiner
-        print("Transactions :", transactions.getMyTransaction(currentMiner))
         blockString = self.getBlockStringWithMiner()  #
         blockHash = hashlib.sha256(blockString).hexdigest()  # 해시화
         self.hash = blockHash
@@ -98,7 +98,8 @@ class Block:
             return False
 
             # Miner라면 합의에 참여가능
-
+    def getTransactions(self):
+        return self.transactions
 
 class BlockChain:
     def __init__(self):
@@ -115,11 +116,36 @@ class BlockChain:
 
         return genesisBlock
 
-    def attachAndFinalizeBlock(self, block):
+    def attachAndFinalizeBlock(self, block, global_state):
         # transaction 실행 및 제거, global state(peerlist 변환정경)
+        transactions = block.getTransactions()
+        for tx in transactions:
+            _from, _to = tx.getFromAndTo()
+            _energy, _money = tx.getEnergyAndMoney()
+            _gas = tx.getGas()
+            for peerAddress, value in global_state.getPeerlist().items():
+                e, m = value[1], value[2] # energy and money
+                print("peerAddress : ",peerAddress," energy : ", e," money : ", m)
+                node_info = global_state.getNode(peerAddress)
+                if peerAddress == _from:
+                    e += _energy
+                    print("energy : ", e)
+                    m -= _money*(1+_gas) # 빠지는 애
+                    global_state = global_state.change_currency(node_info, e, m, peerAddress)
+                elif peerAddress == _to:
+                    e -= _energy
+                    m += _money
+                    global_state = global_state.change_currency(node_info, e, m, peerAddress)
+                print("peerAddress : ", peerAddress, " energy : ", e, " money : ", m)
+
+            money_for_miner = _money * _gas
+            global_state = global_state.change_currency_for_gas_price(global_state.getNode(block.getBlockMiner()), money_for_miner, block.getBlockMiner())
+
         self.currentBlockHash = block.hash
         self.currentHeight += 1
         self.blockList.append(block)
+
+        return global_state # peerList가 들어있는 bootstrap 반환
 
     def createNewBlock(self, txpool):
         block = Block(self.currentBlockHash)  # previous block hash에 현재 블록 해시 집어넣은채로 생성
@@ -138,13 +164,12 @@ if __name__ == '__main__':
     bc = BlockChain()
     TxPool = transaction.TransactionPool()  # TxPool 생성
     bootstrap = node.Network()  # 초기 사용자 노드에게 현재 네트워크 참여 노드 리스트를 전송해주는 bootstrap node
-
-    nodeA = node.Node(bootstrap.Td, bootstrap, 100, 150, 1)  # 노드A 생성
+    nodeA = node.Node(bootstrap.Td, bootstrap, 100, 100, 1)  # 노드A 생성
     nodeA.sendConnectMsg()  # 노드A가 bootstrap에 노드리스트 메세지 전송
     bootstrap.addNode(nodeA)  # 부트노드에 노드A 추가 및 노드A에게 전체 노드리스트 반환
     print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
 
-    nodeB = node.Node(bootstrap.Td, bootstrap, 200, 250, 1)  # 노드B 생성
+    nodeB = node.Node(bootstrap.Td, bootstrap, 200, 200, 1)  # 노드B 생성
     nodeB.sendConnectMsg()  # 노드B가 bootstrap에 노드리스트 메세지 전송
     bootstrap.addNode(nodeB)  # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
     print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
@@ -158,6 +183,7 @@ if __name__ == '__main__':
     print(bootstrap.getPeerInfo(nodeA))  # 네트워크에서 nodeA정보 반환.
     print("Peer List 출력 ---------")
     print(bootstrap.getPeerlist())
+    nodeList = [nodeA, nodeB, nodeC]
     # print("nodeA -> nodeB로 Tx 전송")
     # TxPool.addTx(nodeA.sendTx(nodeB.getPubKey(), 50, 4.1, 0.04, 0, 0))  # TxPool에 Tx추가.
 
@@ -177,7 +203,7 @@ if __name__ == '__main__':
     # BFT Consensus
     isSuccessful = gb.BFT_consensus(bootstrap)
 
-    bc.attachAndFinalizeBlock(gb)
+    bc.attachAndFinalizeBlock(gb, bootstrap)
     print("제네시스 블록을 체인에 연결하였습니다.")
     print("현재 블록체인의 높이 : ", bc.currentHeight)
     print("--------------------------------------------------")
@@ -194,7 +220,7 @@ if __name__ == '__main__':
         print("TxPool내에 있는 모든 Transaction PRINT 개수:" + str(TxPool.getSize()))
         TxPool.printAll()
 
-        ToB = TxPool.getMyTransaction(nodeB)[0].getInfo()  # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
+        ToB = TxPool.getMyTransaction(nodeB.ID)[0].getInfo()  # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
 
         print("nodeB는 Transaction 확인 후, 재서명하여 TxPool에 올림.")
         Tx2 = nodeB.sign2(ToB[0], ToB[1], ToB[2], ToB[3], ToB[4], ToB[5], ToB[7])
@@ -205,6 +231,7 @@ if __name__ == '__main__':
         # 트랜잭션 넣고 -- 재석
         print("다음 블록 생성자를 결정합니다.")
         newBlock = bc.createNewBlock(TxPool)
+
         print("이전 블록 해시 :", newBlock.prevBlockHash)
         print("블록 생성 완료 :", newBlock.hash)
 
@@ -213,7 +240,14 @@ if __name__ == '__main__':
 
         # 트랜잭션 실행해서 Node랑 peerList의 값 바꿔주고 -- 재석
         # bootstrap이 바뀌겠지
-        bc.attachAndFinalizeBlock(newBlock)
+        bootstrap = bc.attachAndFinalizeBlock(newBlock, bootstrap)
+        index = 0
+        print("Node 출력 -----------------")
+        for i in nodeList:
+            nodeList[index] = i.change_currency_node(bootstrap.getNode(i.ID))
+            print(nodeList[index])
+            index += 1
+
         print("블록을 체인에 연결하였습니다.")
 
         print("현재 블록체인의 높이 : ", bc.currentHeight)
