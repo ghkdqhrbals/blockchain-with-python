@@ -182,7 +182,7 @@ if __name__ == '__main__':
     print("TxPool내에 있는 모든 Transaction PRINT 개수:"+str(TxPool.getSize()))
     TxPool.printAll()
 
-    ToB = TxPool.getMyTransaction(nodeB)[0].getInfo() # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
+    ToB = TxPool.getMyTransaction(nodeB.ID)[0].getInfo() # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
 
     print("nodeB는 Transaction 확인 후, 재서명하여 TxPool에 올림.")
     TxPool.addTx(nodeB.sign2(ToB[1],ToB[2],ToB[3],ToB[4],ToB[5],ToB[7]))

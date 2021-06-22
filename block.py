@@ -18,9 +18,21 @@ class Block:
         self.hash = ""  # 현재 블록 해쉬
 
     def setBlockHashAndMiner(self, currentMiner, transactions):
-        self.transactions = transactions  # 트랜잭션을 블록에 담음
+        self.transactions = transactions.getMyTransaction(currentMiner)  # 트랜잭션을 블록에 담음
+        print("이 블록에 담기는 Transactions는? -----------")
+        print(currentMiner)
+        print(self.transactions)
+        print("-----------------------------------------")
         self.minerNodeId = currentMiner
-        print("Transactions :", transactions)
+        print("Transactions :", transactions.getMyTransaction(currentMiner))
+        blockString = self.getBlockStringWithMiner()  #
+        blockHash = hashlib.sha256(blockString).hexdigest()  # 해시화
+        self.hash = blockHash
+
+    def setGenesisBlockHashAndMiner(self, currentMiner):
+        self.transactions = []  # 트랜잭션을 블록에 담음
+        self.minerNodeId = currentMiner
+        # print("Transactions :", transactions)
         blockString = self.getBlockStringWithMiner()  #
         blockHash = hashlib.sha256(blockString).hexdigest()  # 해시화
         self.hash = blockHash
@@ -99,7 +111,7 @@ class BlockChain:
         genesisBlock = Block(byte)
         # currentMiner = genesisBlock.proofOfDraw()
         currentMiner = genesisBlock.proofOfDraw(bootstrap)
-        genesisBlock.setBlockHashAndMiner(currentMiner, genesisBlock.transactions)  # 제네시스 블록에 마이너랑 블록해쉬 값 삽입
+        genesisBlock.setGenesisBlockHashAndMiner(currentMiner)  # 제네시스 블록에 마이너랑 블록해쉬 값 삽입
 
         return genesisBlock
 
@@ -109,11 +121,11 @@ class BlockChain:
         self.currentHeight += 1
         self.blockList.append(block)
 
-    def createNewBlock(self, transactions):
+    def createNewBlock(self, txpool):
         block = Block(self.currentBlockHash)  # previous block hash에 현재 블록 해시 집어넣은채로 생성
 
         currentMiner = block.proofOfDraw(bootstrap)  # 합의 수행, 블록 생성자 결정
-        block.setBlockHashAndMiner(currentMiner, transactions)  # 블록 생성자가 트랜잭션과 함께 블록 생성
+        block.setBlockHashAndMiner(currentMiner, txpool)  # 블록 생성자가 트랜잭션과 함께 블록 생성
         print(block.minerNodeId)
         return block
 
@@ -154,17 +166,7 @@ if __name__ == '__main__':
 
     print(bootstrap.getPeerInfo(nodeA))  # 네트워크에서 nodeA정보 반환.
 
-    print("\'nodeA가 nodeB에게 50 에너지를 4.1원에 살것이다\' Transaction 전송")
-    TxPool.addTx(nodeA.sign1(nodeB.getID(), 50, 4.1, 0.04))  # TxPool에 Tx추가.
 
-    print("TxPool내에 있는 모든 Transaction PRINT 개수:" + str(TxPool.getSize()))
-    TxPool.printAll()
-
-    ToB = TxPool.getMyTransaction(nodeB)[0].getInfo()  # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
-
-    print("nodeB는 Transaction 확인 후, 재서명하여 TxPool에 올림.")
-    TxPool.addTx(nodeB.sign2(ToB[1], ToB[2], ToB[3], ToB[4], ToB[5], ToB[7]))
-    TxPool.printAll()
 
     print("---------------------------------------------------")
     print("---------------------------------------------------")
@@ -188,10 +190,21 @@ if __name__ == '__main__':
         # Node ADD를 하면 node self를 반환
         # bootstrap의 peerlist의 key에 해당하는 값을
         print("트랜잭션을 입력해주세요")
-        trans = ["123", "1245"]
+        print("\'nodeA가 nodeB에게 50 에너지를 4.1원에 살것이다\' Transaction 전송")
+        TxPool.addTx(nodeA.sign1(nodeB.getID(), 50, 4.1, 0.04))  # TxPool에 Tx추가.
+
+        print("TxPool내에 있는 모든 Transaction PRINT 개수:" + str(TxPool.getSize()))
+        TxPool.printAll()
+
+        ToB = TxPool.getMyTransaction(nodeB.ID)[0].getInfo()  # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
+
+        print("nodeB는 Transaction 확인 후, 재서명하여 TxPool에 올림.")
+        TxPool.addTx(nodeB.sign2(ToB[1], ToB[2], ToB[3], ToB[4], ToB[5], ToB[7]))
+        TxPool.printAll()
+        # trans = TxPool.getTxs()
         # 트랜잭션 넣고 -- 재석
         print("다음 블록 생성자를 결정합니다.")
-        newBlock = bc.createNewBlock(trans)
+        newBlock = bc.createNewBlock(TxPool)
         print("이전 블록 해시 :", newBlock.prevBlockHash)
         print("블록 생성 완료 :", newBlock.hash)
 
