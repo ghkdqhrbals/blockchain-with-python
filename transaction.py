@@ -1,4 +1,6 @@
 import hashlib
+
+from Crypto.Hash import SHA
 from OpenSSL import crypto
 
 class TransactionPool:
@@ -11,10 +13,14 @@ class TransactionPool:
         self.Txlist.remove(Tx)
     def getSize(self):
         return len(self.Txlist)
-
+    def printTx(self,nodeID):
+        for tx in self.Txlist:
+            if nodeID == tx.From:
+                print(tx)
 class Transaction:
     def __init__(self, From, To, Energy, Money, GasPrice, sig1, sig2,x509):
-        print('init Transaction')
+        rlp = str(From) + str(To) + str(Energy) + str(Money) + str(GasPrice) + str(sig1)+str(sig2)+str(x509)
+        self.TxID = SHA.new(rlp.encode('utf-8')).hexdigest()
         self.From = From
         self.To = To
         self.Energy = Energy
@@ -22,13 +28,12 @@ class Transaction:
         self.GasPrice = GasPrice
         self.sig1 = sig1
         self.sig2 = sig2
-        print("From:"+str(From))
-        print("To:"+str(To))
-        print("Energy:"+str(Energy))
-        print("Money:"+str(Money))
-        print("GasPrice:"+str(GasPrice))
-        print("sig1:"+crypto.b16encode(sig1).decode()[0:16]) # 너무 길어서 16 bytes 까지만 표시
-        print("sig2:"+str(sig2))
+    def __str__(self):
+        return "------ TxID: "+self.TxID+" ------\nFrom: "+str(self.From)+"\nTo: "+str(self.To)+"\nEnergy: "+str(self.Energy)+"\nMoney: "+str(self.Money)+"\nGasPrice: "+str(self.GasPrice)+"\nsig1: "+str(crypto.b16encode(self.sig1).decode()[0:32])+"\nsig2: "+str(self.sig2)+"\n-------------------------------------------------------------"
+    def getFrom(self):
+        return self.From
+    def getTxID(self):
+        return self.TxID
     #add to Pool
     def sendTx(self):
         return
