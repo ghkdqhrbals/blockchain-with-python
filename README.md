@@ -6,10 +6,10 @@ pbl term project for python
 
 Tx 실제 돈 전송
 
-Tx 재서명
-
 -----------------구현--------------
 
-ID
+ID[:16]까지
 
 self.peerlist[node.ID] = [node.state,node.Energy,node.Money,node.pub_key]
+
+Tx 재서명

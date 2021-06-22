@@ -82,20 +82,36 @@ class Node:
     def getPubKey(self):
         return self.pub_key
 
-    def sendTx(self, To, Energy, Money, GasPrice, sig1, sig2):
-        with open("private" + str(self.number) + ".pem", 'rb+') as f:
+    def sign1(self,To,Energy,Money,GasPrice):
+        with open("private"+str(self.number)+".pem", 'rb+') as f:
             self.priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
         with open("public" + str(self.number) + ".pem", 'rb+') as f:
             self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
 
-        rlp = str(self.pub_key) + str(To) + str(Energy) + str(Money) + str(GasPrice) + str(sig1)
+        rlp = str(self.pub_key) + str(To) + str(Energy) + str(Money) + str(GasPrice)
         hash = SHA.new(rlp.encode('utf-8')).digest()
-        sig = sign(self.priv_key, hash, 'sha256')
+        sig1 = sign(self.priv_key, hash, 'sha256')
 
         x509 = X509()
         x509.set_pubkey(self.pub_key)
-        Tx = Transaction(self.pub_key, To, Energy, Money, GasPrice, sig, sig2, x509)
-        print("send transaction")
+        Tx = Transaction(self.ID, To, Energy, Money, GasPrice, sig1, b'0', x509,b'0')
+        print("sign 1")
+        return Tx
+      
+    def sign2(self,To,Energy,Money,GasPrice,sig1,x509_1):
+        with open("private"+str(self.number)+".pem", 'rb+') as f:
+            self.priv_key = crypto.load_privatekey(crypto.FILETYPE_PEM, f.read())
+        with open("public"+str(self.number)+".pem", 'rb+') as f:
+            self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
+
+        rlp = str(self.pub_key)+str(To)+str(Energy)+str(Money)+str(GasPrice)+str(sig1)
+        hash = SHA.new(rlp.encode('utf-8')).digest()
+        sig2 = sign(self.priv_key,hash,'sha256')
+
+        x509 = X509()
+        x509.set_pubkey(self.pub_key)
+        Tx = Transaction(self.ID,To,Energy,Money,GasPrice,sig1,sig2,x509_1,x509)
+        print("sign 2")
         print(Tx)
         return Tx
 
@@ -103,7 +119,6 @@ class Node:
         for i in self.peerlistm:
             msgServer.sendConnectMsg(self.ID, i)
         return
-
 
 class MSG():
     def __init__(self):
@@ -114,12 +129,13 @@ class MSG():
         temp = [node1, node2, 'ConnectMsg']
         self.dicts.append(temp)
 
-    def getMSGprint(self, node1):
+    # 내가 받은 메세지
+    def getMSGprint(self,node1):
         print("-----getMSG start-------")
         for i in self.dicts:
             if str(node1.ID) == str(i[1]):
                 # 밑에 수정 필요
-                print(str(node1) + " MSG : " + str(i[2]) + " FROM : " + str(i[0]))
+                print("[ME:"+str(node1.ID)+"] [MSG:"+str(i[2]) + "] [FROM:"+ str(i[0])+"]")
         print("-----getMSG end-------")
 
     def sendMSGprint(self, node1):
@@ -127,7 +143,7 @@ class MSG():
         for i in self.dicts:
             if str(node1.ID) == str(i[0]):
                 # 밑에 수정 필요
-                print(str(node1.ID) + " MSG : " + str(i[2]) + " To : " + str(i[1]))
+                print("[ME:"+str(node1.ID)+"] [MSG:"+str(i[2]) + "] [TO:"+ str(i[1])+"]")
         print("-----getMSG end-------")
 
 
@@ -140,17 +156,34 @@ if __name__ == '__main__':
     nodeA = Node(bootstrap.Td, bootstrap, 100, 150, 1)  # 노드A 생성
     nodeA.sendConnectMsg()  # 노드A가 bootstrap에 노드리스트 메세지 전송
     bootstrap.addNode(nodeA)  # 부트노드에 노드A 추가 및 노드A에게 전체 노드리스트 반환
-    print("\n현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()))
+    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize())+"\n")
 
-    nodeB = Node(bootstrap.Td, bootstrap, 200, 250, 1)  # 노드B 생성
-    nodeB.sendConnectMsg()  # 노드B가 bootstrap에 노드리스트 메세지 전송
-    bootstrap.addNode(nodeB)  # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
-    print("\n현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()))
+    nodeB = Node(bootstrap.Td, bootstrap,200,250,1)  # 노드B 생성
+    nodeB.sendConnectMsg() # 노드B가 bootstrap에 노드리스트 메세지 전송
+    bootstrap.addNode(nodeB) # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
+    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize())+"\n")
+
+    nodeC = Node(bootstrap.Td, bootstrap, 500, 1000, 1)  # 노드B 생성
+    nodeC.sendConnectMsg()  # 노드B가 bootstrap에 노드리스트 메세지 전송
+    bootstrap.addNode(nodeC)  # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
+    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize())+"\n")
+
+    #msgServer.getMSGprint(nodeB)  # nodeB가 받은 message 출력
+    #msgServer.sendMSGprint(nodeB)  # nodeB가 전송한 message 출력
+
+    #msgServer.getMSGprint(nodeA)  # nodeB가 받은 message 출력
+    #msgServer.sendMSGprint(nodeA)  # nodeB가 전송한 message 출력
 
     print(bootstrap.getPeerInfo(nodeA))  # 네트워크에서 nodeA정보 반환.
 
-    print("nodeA -> nodeB로 Tx 전송")
-    TxPool.addTx(nodeA.sendTx(nodeB.getPubKey(), 50, 4.1, 0.04, 0, 0))  # TxPool에 Tx추가.
-    print(bootstrap.getPeerlist())
-    msgServer.getMSGprint(nodeB)  # nodeB가 받은 message 출력
-    msgServer.sendMSGprint(nodeB)  # nodeB가 전송한 message 출력
+    print("\'nodeA가 nodeB에게 50 에너지를 4.1원에 살것이다\' Transaction 전송")
+    TxPool.addTx(nodeA.sign1(nodeB.getID(), 50, 4.1, 0.04)) # TxPool에 Tx추가.
+
+    print("TxPool내에 있는 모든 Transaction PRINT 개수:"+str(TxPool.getSize()))
+    TxPool.printAll()
+
+    ToB = TxPool.getMyTransaction(nodeB)[0].getInfo() # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
+
+    print("nodeB는 Transaction 확인 후, 재서명하여 TxPool에 올림.")
+    TxPool.addTx(nodeB.sign2(ToB[1],ToB[2],ToB[3],ToB[4],ToB[5],ToB[7]))
+    TxPool.printAll()
