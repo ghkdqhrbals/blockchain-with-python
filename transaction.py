@@ -16,7 +16,6 @@ class TransactionPool:
     def printAll(self):
         for tx in self.Txlist:
             print(tx)
-        print("끝")
     def printTx(self,nodeID):
         for tx in self.Txlist:
             if nodeID == tx.TxID:
