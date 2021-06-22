@@ -51,6 +51,13 @@ class Block:
         miner = str(self.minerNodeId)
         return (pb + miner + tx + ts).encode()
 
+    def BFT_consensus(self):
+        gs = getGlobalState()
+
+
+def getGlobalState():
+    return [1, 2, 3]
+
 
 class BlockChain:
     def __init__(self):
