@@ -22,7 +22,8 @@ class Block:
         print("이 블록에 담기는 Transactions는? -----------")
         print(currentMiner)
         if len(self.transactions) > 0:
-            print(self.transactions[0])
+            for ad in self.transactions:
+                print(ad)
         print("-----------------------------------------")
         self.minerNodeId = currentMiner
         blockString = self.getBlockStringWithMiner()  #
@@ -125,18 +126,15 @@ class BlockChain:
             _gas = tx.getGas()
             for peerAddress, value in global_state.getPeerlist().items():
                 e, m = value[1], value[2] # energy and money
-                print("peerAddress : ",peerAddress," energy : ", e," money : ", m)
                 node_info = global_state.getNode(peerAddress)
                 if peerAddress == _from:
                     e += _energy
-                    print("energy : ", e)
                     m -= _money*(1+_gas) # 빠지는 애
                     global_state = global_state.change_currency(node_info, e, m, peerAddress)
                 elif peerAddress == _to:
                     e -= _energy
                     m += _money
                     global_state = global_state.change_currency(node_info, e, m, peerAddress)
-                print("peerAddress : ", peerAddress, " energy : ", e, " money : ", m)
 
             money_for_miner = _money * _gas
             global_state = global_state.change_currency_for_gas_price(global_state.getNode(block.getBlockMiner()), money_for_miner, block.getBlockMiner())
@@ -164,39 +162,34 @@ if __name__ == '__main__':
     bc = BlockChain()
     TxPool = transaction.TransactionPool()  # TxPool 생성
     bootstrap = node.Network()  # 초기 사용자 노드에게 현재 네트워크 참여 노드 리스트를 전송해주는 bootstrap node
-    nodeA = node.Node(bootstrap.Td, bootstrap, 100, 100, 1)  # 노드A 생성
-    nodeA.sendConnectMsg()  # 노드A가 bootstrap에 노드리스트 메세지 전송
-    bootstrap.addNode(nodeA)  # 부트노드에 노드A 추가 및 노드A에게 전체 노드리스트 반환
-    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
 
-    nodeB = node.Node(bootstrap.Td, bootstrap, 200, 200, 1)  # 노드B 생성
-    nodeB.sendConnectMsg()  # 노드B가 bootstrap에 노드리스트 메세지 전송
-    bootstrap.addNode(nodeB)  # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
-    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
-
-    nodeC = node.Node(bootstrap.Td, bootstrap, 500, 1000, 1)  # 노드B 생성
-    nodeC.sendConnectMsg()  # 노드B가 bootstrap에 노드리스트 메세지 전송
-    bootstrap.addNode(nodeC)  # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
-    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
-
-    print("Node A 출력 ------------")
-    print(bootstrap.getPeerInfo(nodeA))  # 네트워크에서 nodeA정보 반환.
-    print("Peer List 출력 ---------")
-    print(bootstrap.getPeerlist())
-    nodeList = [nodeA, nodeB, nodeC]
+    nodeList = []
+    miner1 = 5
+    for pp in range(1,6):
+        nodeList.append(node.Node(bootstrap.Td, bootstrap, 1000*pp, 10*pp, 1))
+        nodeList[len(nodeList) - 1].sendConnectMsg()
+        bootstrap.addNode(nodeList[len(nodeList)-1])
+    user1 = 5
+    for pp in range(1,6):
+        nodeList.append(node.Node(bootstrap.Td, bootstrap, 10*pp, 100*pp, 0))
+        nodeList[len(nodeList) - 1].sendConnectMsg()
+        bootstrap.addNode(nodeList[len(nodeList)-1])
     # print("nodeA -> nodeB로 Tx 전송")
     # TxPool.addTx(nodeA.sendTx(nodeB.getPubKey(), 50, 4.1, 0.04, 0, 0))  # TxPool에 Tx추가.
 
     # node.msgServer.getMSGprint(nodeB)  # nodeB가 받은 message 출력
     # node.msgServer.sendMSGprint(nodeB)  # nodeB가 전송한 message 출력
 
-    print(bootstrap.getPeerInfo(nodeA))  # 네트워크에서 nodeA정보 반환.
+
     print("---------------------------------------------------")
     print("---------------------------------------------------")
     print("---------------------------------------------------")
     print("모든 Node가 생성되었습니다.")
     print("제네시스 블록을 생성합니다.")
 
+    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
+    print("Peer List 출력 ---------")
+    print(bootstrap.getPeerlist())
     gb = bc.createGenesisBlock(bootstrap)
     print("제네시스 블록 생성 완료 :", gb.hash)
 
@@ -214,19 +207,18 @@ if __name__ == '__main__':
         # bootstrap의 peerlist의 key에 해당하는 값을
         print("트랜잭션을 입력해주세요")
         print("\'nodeA가 nodeB에게 50 에너지를 4.1원에 살것이다\' Transaction 전송")
-        Tx1 = nodeA.sign1(nodeB.getID(), 50, 4.1, 0.04)
-        TxPool.addTx(Tx1)  # TxPool에 Tx추가.
+        for ttx in range(1,5):
+            Tx1 = nodeList[miner1+ttx-1].sign1(nodeList[ttx-1].getID(),10*ttx,10*ttx,0.02)
+            TxPool.addTx(Tx1)  # TxPool에 Tx추가.
+            print("TxPool내에 있는 모든 Transaction PRINT 개수:" + str(TxPool.getSize()))
+            TxPool.printAll()
+            ToB = TxPool.getMyTransaction(nodeList[ttx-1].ID)[0].getInfo()  # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
+            print("nodeB는 Transaction 확인 후, 재서명하여 TxPool에 올림.")
+            Tx2 = nodeList[ttx-1].sign2(ToB[0], ToB[1], ToB[2], ToB[3], ToB[4], ToB[5], ToB[7])
+            TxPool.addTx(Tx2)
+            TxPool.removeTx(Tx1)
+            TxPool.printAll()
 
-        print("TxPool내에 있는 모든 Transaction PRINT 개수:" + str(TxPool.getSize()))
-        TxPool.printAll()
-
-        ToB = TxPool.getMyTransaction(nodeB.ID)[0].getInfo()  # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
-
-        print("nodeB는 Transaction 확인 후, 재서명하여 TxPool에 올림.")
-        Tx2 = nodeB.sign2(ToB[0], ToB[1], ToB[2], ToB[3], ToB[4], ToB[5], ToB[7])
-        TxPool.addTx(Tx2)
-        TxPool.removeTx(Tx1)
-        TxPool.printAll()
         # trans = TxPool.getTxs()
         # 트랜잭션 넣고 -- 재석
         print("다음 블록 생성자를 결정합니다.")

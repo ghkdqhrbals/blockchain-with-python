@@ -107,7 +107,7 @@ class Node:
             self.pub_key = crypto.load_publickey(crypto.FILETYPE_PEM, f.read())
 
     def __str__(self):
-        return "Node : " + str(self.ID) + ", Money : " + str(self.Money) + ", Energy : " + str(self.Energy)
+        return "Node : " + str(self.ID) + ", Money : " + str(self.Money) + ", Energy : " + str(self.Energy) + ", State : "+str(self.state)
 
     def change_currency_node(self, node):
         self.Energy = node[1]
