@@ -104,6 +104,7 @@ class BlockChain:
         return genesisBlock
 
     def attachAndFinalizeBlock(self, block):
+        # transaction 실행 및 제거, global state(peerlist 변환정경)
         self.currentBlockHash = block.hash
         self.currentHeight += 1
         self.blockList.append(block)
@@ -129,12 +130,17 @@ if __name__ == '__main__':
     nodeA = node.Node(bootstrap.Td, bootstrap, 100, 150, 1)  # 노드A 생성
     nodeA.sendConnectMsg()  # 노드A가 bootstrap에 노드리스트 메세지 전송
     bootstrap.addNode(nodeA)  # 부트노드에 노드A 추가 및 노드A에게 전체 노드리스트 반환
-    print("\n현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()))
+    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
 
     nodeB = node.Node(bootstrap.Td, bootstrap, 200, 250, 1)  # 노드B 생성
     nodeB.sendConnectMsg()  # 노드B가 bootstrap에 노드리스트 메세지 전송
     bootstrap.addNode(nodeB)  # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
-    print("\n현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()))
+    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
+
+    nodeC = node.Node(bootstrap.Td, bootstrap, 500, 1000, 1)  # 노드B 생성
+    nodeC.sendConnectMsg()  # 노드B가 bootstrap에 노드리스트 메세지 전송
+    bootstrap.addNode(nodeC)  # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
+    print("현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()) + "\n")
 
     print("Node A 출력 ------------")
     print(bootstrap.getPeerInfo(nodeA))  # 네트워크에서 nodeA정보 반환.
@@ -146,6 +152,23 @@ if __name__ == '__main__':
     # node.msgServer.getMSGprint(nodeB)  # nodeB가 받은 message 출력
     # node.msgServer.sendMSGprint(nodeB)  # nodeB가 전송한 message 출력
 
+    print(bootstrap.getPeerInfo(nodeA))  # 네트워크에서 nodeA정보 반환.
+
+    print("\'nodeA가 nodeB에게 50 에너지를 4.1원에 살것이다\' Transaction 전송")
+    TxPool.addTx(nodeA.sign1(nodeB.getID(), 50, 4.1, 0.04))  # TxPool에 Tx추가.
+
+    print("TxPool내에 있는 모든 Transaction PRINT 개수:" + str(TxPool.getSize()))
+    TxPool.printAll()
+
+    ToB = TxPool.getMyTransaction(nodeB)[0].getInfo()  # B는 자기에게 온 Transaction의 첫번째 Tx를 확인
+
+    print("nodeB는 Transaction 확인 후, 재서명하여 TxPool에 올림.")
+    TxPool.addTx(nodeB.sign2(ToB[1], ToB[2], ToB[3], ToB[4], ToB[5], ToB[7]))
+    TxPool.printAll()
+
+    print("---------------------------------------------------")
+    print("---------------------------------------------------")
+    print("---------------------------------------------------")
     print("모든 Node가 생성되었습니다.")
     print("제네시스 블록을 생성합니다.")
 
@@ -160,9 +183,13 @@ if __name__ == '__main__':
     print("현재 블록체인의 높이 : ", bc.currentHeight)
     print("--------------------------------------------------")
     a = 0
-    while a < 5:
+    while a < 1:
+        # Money, Energy 변화량 적용 to peerList -- 규민
+        # Node ADD를 하면 node self를 반환
+        # bootstrap의 peerlist의 key에 해당하는 값을
         print("트랜잭션을 입력해주세요")
         trans = ["123", "1245"]
+        # 트랜잭션 넣고 -- 재석
         print("다음 블록 생성자를 결정합니다.")
         newBlock = bc.createNewBlock(trans)
         print("이전 블록 해시 :", newBlock.prevBlockHash)
@@ -171,8 +198,11 @@ if __name__ == '__main__':
         # BFT Consensus
         newBlock.BFT_consensus(bootstrap)
 
+        # 트랜잭션 실행해서 Node랑 peerList의 값 바꿔주고 -- 재석
+        # bootstrap이 바뀌겠지
         bc.attachAndFinalizeBlock(newBlock)
         print("블록을 체인에 연결하였습니다.")
+
         print("현재 블록체인의 높이 : ", bc.currentHeight)
         print("--------------------------------------------------")
         a += 1
