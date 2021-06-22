@@ -17,6 +17,7 @@ class Block:
         self.timestamp = ""  # 블록 타임스탬프
         self.hash = ""  # 현재 블록 해쉬
 
+
     def setBlockHashAndMiner(self, currentMiner, transactions):
         self.transactions = transactions.getTxs()  # 트랜잭션을 블록에 담음
         print("이 블록에 담기는 Transactions는? -----------")

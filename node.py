@@ -109,6 +109,7 @@ class Node:
     def __str__(self):
         return "Node : " + str(self.ID) + ", Money : " + str(self.Money) + ", Energy : " + str(self.Energy) + ", State : "+str(self.state)
 
+
     def change_currency_node(self, node):
         self.Energy = node[1]
         self.Money = node[2]

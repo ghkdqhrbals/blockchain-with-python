@@ -43,6 +43,7 @@ class Transaction:
         self.sig2 = sig2
         self.x509 = x509
         self.x509_2 = x509_2
+
     def __str__(self):
         return "======= TxID: "+self.TxID+" =======\nFrom: "+str(self.From)+"\nTo: "+str(self.To)+"\nEnergy: "+str(self.Energy)+"\nMoney: "+str(self.Money)+"\nGasPrice: "+str(self.GasPrice)+"\nsig1: "+str(crypto.b16encode(self.sig1).decode()[0:32])+"\nsig2: "+str(crypto.b16encode(self.sig2).decode()[0:32])+"\n=============================================================="
     def getFromAndTo(self):
