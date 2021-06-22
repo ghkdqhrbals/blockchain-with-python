@@ -131,7 +131,6 @@ if __name__ == '__main__':
     bootstrap.addNode(nodeB) # 부트노드에 노드B 추가 및 노드B에게 전체 노드리스트 반환
     print("\n현재 메인 네트워크 참가자 크기:" + str(bootstrap.getSize()))
 
-
     print(bootstrap.getPeerInfo(nodeA)) # 네트워크에서 nodeA정보 반환.
 
     print("nodeA -> nodeB로 Tx 전송")

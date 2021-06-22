@@ -4,7 +4,6 @@ import hashlib
 nodeLength = 5
 NodeAddresses = []
 
-
 class Block:
     def __init__(self, prevBlockHash):
         self.prevBlockHash = prevBlockHash  # 이전 블록 해쉬

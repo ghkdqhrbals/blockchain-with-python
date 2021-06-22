@@ -17,7 +17,6 @@ class TransactionPool:
         for tx in self.Txlist:
             if nodeID == tx.From:
                 print(tx)
-
 class Transaction:
     def __init__(self, From, To, Energy, Money, GasPrice, sig1, sig2,x509):
         rlp = str(From) + str(To) + str(Energy) + str(Money) + str(GasPrice) + str(sig1)+str(sig2)+str(x509)
